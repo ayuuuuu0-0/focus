@@ -8,6 +8,7 @@ import { CheckInSidebar } from "./CheckInSidebar";
 import { SettingsPanel } from "./SettingsPanel";
 import { StatsGrid } from "./StatsGrid";
 import { CheckInModal } from "./CheckInModal";
+import { SignatureMark } from "./SignatureMark";
 import { useEffect } from "react";
 import { useFocus } from "@/context/FocusContext";
 
@@ -38,6 +39,7 @@ function DashboardInner() {
         </div>
       </div>
       <CheckInModal />
+      <SignatureMark />
     </>
   );
 }

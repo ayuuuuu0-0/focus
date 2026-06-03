@@ -56,7 +56,7 @@ export function computeCurrentStreak(days: Record<string, number>): number {
 /** Last 7 days (Mon-based week ending today) for the week strip */
 export function weekStrip(days: Record<string, number>): { label: string; date: string; count: number; isToday: boolean }[] {
   const result: { label: string; date: string; count: number; isToday: boolean }[] = [];
-  const labels = ["M", "T", "W", "T", "F", "S", "S"];
+  const labels = ["M", "Tu", "W", "Th", "F", "Sa", "Su"];
   const today = new Date();
   const todayDow = today.getDay();
   const mondayOffset = todayDow === 0 ? -6 : 1 - todayDow;

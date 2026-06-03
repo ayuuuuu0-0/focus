@@ -20,10 +20,14 @@ export function WeekStreak() {
             .join(" ");
 
           return (
-            <div key={day.date} className={classes} title={`${day.date}: ${day.count} goals`}>
-              {day.label}
+            <div key={day.date} className={classes} title={`${day.date}: ${day.count} goals completed`}>
+              {day.count > 0 && (
+                <span className="count" aria-label={`${day.count} goals`}>
+                  {day.count}
+                </span>
+              )}
+              <span className="week-day-label">{day.label}</span>
               <span className="dot" />
-              {day.count > 0 && <span className="count">{day.count}</span>}
             </div>
           );
         })}

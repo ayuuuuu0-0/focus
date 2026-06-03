@@ -46,4 +46,4 @@ export const SUGGESTED_TAGS = ["deep work", "meeting", "learning", "admin", "hea
 export const REMINDER_TICK_MS = 30_000;
 
 /** Week day labels (Mon–Sun) */
-export const WEEK_DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"] as const;
+export const WEEK_DAY_LABELS = ["M", "Tu", "W", "Th", "F", "Sa", "Su"] as const;

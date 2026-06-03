@@ -19,9 +19,21 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open the URL shown in the terminal (usually [http://localhost:3000](http://localhost:3000)). If port 3000 is busy, Next.js picks the next free port (3001, 3002, …).
 
 Allow notifications when prompted (required for reminder pings).
+
+### App broken or blank / 500 error?
+
+Stale dev servers and a corrupted `.next` cache often cause this after many edits. Fix:
+
+```bash
+# stop any old `npm run dev` processes, then:
+cd /Users/ayush/project/fo-cus
+npm run dev:clean
+```
+
+Or manually: `rm -rf .next && npm run dev`
 
 ## Stack
 
