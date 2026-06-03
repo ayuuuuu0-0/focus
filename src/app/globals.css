@@ -774,10 +774,25 @@ body::before {
   gap: 0.3rem;
   font-size: 0.62rem;
   font-weight: 500;
+  font-family: inherit;
   color: var(--text-muted);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.week-day:hover {
+  border-color: rgba(168, 85, 247, 0.25);
+  color: var(--text);
+}
+
+.week-day.selected {
+  border-color: rgba(168, 85, 247, 0.65);
+  background: rgba(168, 85, 247, 0.08);
+  color: var(--text);
 }
 
 .week-day-label {
@@ -821,6 +836,76 @@ body::before {
   padding: 0.1rem 0.25rem;
   border-radius: 3px;
   pointer-events: none;
+}
+
+.day-view-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: var(--radius-sm);
+}
+
+.day-view-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.day-view-label strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.day-view-hint {
+  margin-left: 0.45rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-purple);
+}
+
+.day-view-back {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--accent-purple);
+  background: transparent;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
+.day-view-back:hover {
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.day-view-empty {
+  margin: 0.5rem 0 1rem;
+  padding: 1rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.task-list-readonly .task-item {
+  cursor: default;
+}
+
+.task-list-readonly .task-item:hover {
+  border-color: var(--border);
+}
+
+.task-time-readonly {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
 }
 
 .sidebar {
@@ -1124,7 +1209,7 @@ body::before {
 .signature-a {
   position: relative;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: -0.06em;
   color: var(--text-muted);
@@ -1136,8 +1221,8 @@ body::before {
   left: 50%;
   top: 52%;
   transform: translate(-50%, -50%);
-  width: 5px;
-  height: 5px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: var(--accent-green);
   opacity: 0.85;
@@ -1298,7 +1383,7 @@ body::before {
   }
 
   .signature-a {
-    font-size: 1.05rem;
+    font-size: 0.68rem;
   }
 }
 

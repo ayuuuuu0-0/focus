@@ -5,9 +5,16 @@ import { GOAL_STATUS } from "@/lib/constants";
 
 /** Switch focused task among secondary actives (main shown on its card) */
 export function ActiveGoalTabs() {
-  const { goals, mainGoalId, focusedGoalId, setFocusedGoal } = useFocus();
-  const secondaries = goals.filter(
-    (g) => g.status === GOAL_STATUS.active && g.id !== mainGoalId
+  const {
+    displayGoals,
+    displayMainGoalId,
+    displayFocusedGoalId,
+    isReadOnlyView,
+    setFocusedGoal,
+  } = useFocus();
+
+  const secondaries = displayGoals.filter(
+    (g) => g.status === GOAL_STATUS.active && g.id !== displayMainGoalId
   );
 
   if (secondaries.length === 0) return null;
@@ -21,14 +28,17 @@ export function ActiveGoalTabs() {
       <span className="active-tabs-label">focused on</span>
       <div className="active-tabs-list">
         {secondaries.map((g) => {
-          const isFocused = g.id === focusedGoalId;
+          const isFocused = g.id === displayFocusedGoalId;
           const short = g.title.length > 22 ? `${g.title.slice(0, 22)}…` : g.title;
           return (
             <button
               key={g.id}
               type="button"
               className={`active-tab ${isFocused ? "active-tab-focused" : ""}`}
-              onClick={() => setFocusedGoal(g.id)}
+              onClick={() => {
+                if (!isReadOnlyView) setFocusedGoal(g.id);
+              }}
+              disabled={isReadOnlyView}
               aria-pressed={isFocused}
             >
               {short}

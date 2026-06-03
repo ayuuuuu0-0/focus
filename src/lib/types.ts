@@ -34,6 +34,22 @@ export interface StreakData {
   days: Record<string, number>;
 }
 
+/** Board state captured for a single calendar day */
+export interface DaySnapshot {
+  goals: Goal[];
+  /** Primary active task id at snapshot time */
+  mainGoalId: string | null;
+  /** Secondary focused task id at snapshot time */
+  focusedGoalId: string | null;
+  /** When this snapshot was last written (ISO) */
+  savedAt: string;
+}
+
+/** Daily board snapshots keyed by YYYY-MM-DD */
+export interface DaySnapshotStore {
+  days: Record<string, DaySnapshot>;
+}
+
 export interface CheckInState {
   open: boolean;
   goalId: string | null;

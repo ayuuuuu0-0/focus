@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from "./constants";
-import type { Goal, Settings, StreakData } from "./types";
+import type { Goal, Settings, StreakData, DaySnapshotStore } from "./types";
 import {
   DEFAULT_FOCUS_END_HOUR,
   DEFAULT_FOCUS_START_HOUR,
@@ -106,4 +106,12 @@ export function saveFocusedGoalId(id: string | null): void {
     return;
   }
   localStorage.setItem(STORAGE_KEYS.focusedGoalId, id);
+}
+
+export function loadDaySnapshots(): DaySnapshotStore {
+  return readStorage<DaySnapshotStore>(STORAGE_KEYS.daySnapshots, { days: {} });
+}
+
+export function saveDaySnapshots(store: DaySnapshotStore): void {
+  writeStorage(STORAGE_KEYS.daySnapshots, store);
 }

@@ -8,13 +8,20 @@ import { CompleteIcon } from "@/components/icons/CompleteIcon";
 import { ActiveGoalTabs } from "@/components/ActiveGoalTabs";
 import { TimeRangePicker } from "@/components/TimeRangePicker";
 import { GoalContextMenu, type GoalMenuState } from "@/components/GoalContextMenu";
+import { formatSnapshotDateLabel } from "@/lib/snapshots";
+import { todayKey } from "@/lib/streaks";
+import { formatTimeRangeDisplay } from "@/lib/time";
 
 /** Goal list and add-goal form */
 export function GoalBoard() {
   const {
-    goals,
-    mainGoalId,
-    focusedGoalId,
+    displayGoals,
+    displayMainGoalId,
+    displayFocusedGoalId,
+    selectedDate,
+    isReadOnlyView,
+    hasSnapshotForSelected,
+    setSelectedDate,
     addGoal,
     setGoalProgress,
     completeGoal,
@@ -50,63 +57,89 @@ export function GoalBoard() {
     setMenu({ goalId, x: e.clientX, y: e.clientY, isCompleted });
   };
 
+  const dateLabel = formatSnapshotDateLabel(selectedDate);
+
   return (
-    <section>
-      <form
-        className="task-input-wrap task-input-wrap-add reveal"
-        style={{ "--d": 1 } as React.CSSProperties}
-        onSubmit={handleSubmit}
-      >
-        <input
-          className="task-input"
-          type="text"
-          placeholder="what do you need to do today?"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          aria-label="Goal title"
-        />
-        <input
-          className="input-sm tag-input"
-          type="text"
-          placeholder="tag"
-          list="tag-suggestions"
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
-          aria-label="Goal tag"
-        />
-        <datalist id="tag-suggestions">
-          {SUGGESTED_TAGS.map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
+    <section className={isReadOnlyView ? "goal-board-readonly" : undefined}>
+      {isReadOnlyView && (
+        <div className="day-view-banner reveal" style={{ "--d": 1 } as React.CSSProperties}>
+          <span className="day-view-label">
+            Viewing <strong>{dateLabel}</strong>
+            <span className="day-view-hint">read only</span>
+          </span>
+          <button
+            type="button"
+            className="day-view-back"
+            onClick={() => setSelectedDate(todayKey())}
+          >
+            back to today
+          </button>
+        </div>
+      )}
 
-        <TimeRangePicker
-          size="lg"
-          timeStart={timeStart}
-          timeEnd={timeEnd}
-          editing={addTimeEditing}
-          onEditingChange={setAddTimeEditing}
-          onChange={(start, end) => {
-            setTimeStart(start);
-            setTimeEnd(end);
-          }}
-        />
+      {!isReadOnlyView && (
+        <form
+          className="task-input-wrap task-input-wrap-add reveal"
+          style={{ "--d": 1 } as React.CSSProperties}
+          onSubmit={handleSubmit}
+        >
+          <input
+            className="task-input"
+            type="text"
+            placeholder="what do you need to do today?"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Goal title"
+          />
+          <input
+            className="input-sm tag-input"
+            type="text"
+            placeholder="tag"
+            list="tag-suggestions"
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            aria-label="Goal tag"
+          />
+          <datalist id="tag-suggestions">
+            {SUGGESTED_TAGS.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
 
-        <button className="add-btn" type="submit" aria-label="Add goal">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5v14" />
-          </svg>
-        </button>
-      </form>
+          <TimeRangePicker
+            size="lg"
+            timeStart={timeStart}
+            timeEnd={timeEnd}
+            editing={addTimeEditing}
+            onEditingChange={setAddTimeEditing}
+            onChange={(start, end) => {
+              setTimeStart(start);
+              setTimeEnd(end);
+            }}
+          />
+
+          <button className="add-btn" type="submit" aria-label="Add goal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5v14" />
+            </svg>
+          </button>
+        </form>
+      )}
 
       <ActiveGoalTabs />
 
-      <ul className="task-list" role="list">
-        {goals.map((goal) => {
+      {isReadOnlyView && !hasSnapshotForSelected && (
+        <p className="day-view-empty reveal" style={{ "--d": 2 } as React.CSSProperties}>
+          Nothing saved for {dateLabel}. Open fo.cus that day to capture your board.
+        </p>
+      )}
+
+      <ul className={`task-list ${isReadOnlyView ? "task-list-readonly" : ""}`} role="list">
+        {displayGoals.map((goal) => {
           const isActive = goal.status === GOAL_STATUS.active;
           const isCompleted = goal.status === GOAL_STATUS.completed;
-          const isMain = isActive && goal.id === mainGoalId;
-          const isFocused = isActive && goal.id === focusedGoalId;
+          const isMain = isActive && goal.id === displayMainGoalId;
+          const isFocused = isActive && goal.id === displayFocusedGoalId;
           const isSecondary = isActive && !isMain;
 
           let pillClass = "pill-upnext";
@@ -122,15 +155,19 @@ export function GoalBoard() {
             pillLabel = "active";
           }
 
+          const timeDisplay = formatTimeRangeDisplay(goal.timeStart, goal.timeEnd);
+
           return (
             <li
               key={goal.id}
               className={`task-item ${goal.status} ${isMain ? "is-main" : ""} ${isFocused ? "focused" : ""}`}
               role="listitem"
               onClick={() => {
-                if (isActive) setFocusedGoal(goal.id);
+                if (!isReadOnlyView && isActive) setFocusedGoal(goal.id);
               }}
-              onContextMenu={(e) => openContextMenu(e, goal.id, isCompleted)}
+              onContextMenu={(e) => {
+                if (!isReadOnlyView) openContextMenu(e, goal.id, isCompleted);
+              }}
             >
               <div className="task-main">
                 <div className="task-header">
@@ -141,50 +178,56 @@ export function GoalBoard() {
                     )}
                   </div>
                   <div className="task-actions">
-                    <button
-                      type="button"
-                      className={`pill ${pillClass}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isCompleted) {
-                          restoreGoal(goal.id);
-                          return;
-                        }
-                        if (isMain) {
-                          toggleActiveGoal(goal.id);
-                          return;
-                        }
-                        if (isSecondary) {
-                          toggleActiveGoal(goal.id);
-                          return;
-                        }
-                        toggleActiveGoal(goal.id);
-                      }}
-                      title={
-                        isCompleted
-                          ? "Restore to active"
-                          : isMain
-                            ? "Pause main task"
-                            : isSecondary
-                              ? "Remove from active"
-                              : "Add as secondary active"
-                      }
-                    >
-                      {pillLabel}
-                    </button>
-                    {!isCompleted && (
-                      <button
-                        type="button"
-                        className="btn-complete"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          completeGoal(goal.id);
-                        }}
-                        aria-label={`Complete ${goal.title}`}
-                        title="Mark complete"
-                      >
-                        <CompleteIcon size={20} />
-                      </button>
+                    {isReadOnlyView ? (
+                      <span className={`pill ${pillClass}`}>{pillLabel}</span>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className={`pill ${pillClass}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isCompleted) {
+                              restoreGoal(goal.id);
+                              return;
+                            }
+                            if (isMain) {
+                              toggleActiveGoal(goal.id);
+                              return;
+                            }
+                            if (isSecondary) {
+                              toggleActiveGoal(goal.id);
+                              return;
+                            }
+                            toggleActiveGoal(goal.id);
+                          }}
+                          title={
+                            isCompleted
+                              ? "Restore to active"
+                              : isMain
+                                ? "Pause main task"
+                                : isSecondary
+                                  ? "Remove from active"
+                                  : "Add as secondary active"
+                          }
+                        >
+                          {pillLabel}
+                        </button>
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            className="btn-complete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              completeGoal(goal.id);
+                            }}
+                            aria-label={`Complete ${goal.title}`}
+                            title="Mark complete"
+                          >
+                            <CompleteIcon size={20} />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -203,35 +246,43 @@ export function GoalBoard() {
                         style={{ width: `${goal.progress}%` }}
                       />
                     </div>
-                    <input
-                      type="range"
-                      className="progress-slider"
-                      min={0}
-                      max={100}
-                      value={goal.progress}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        setGoalProgress(goal.id, Number(e.target.value))
-                      }
-                      aria-label={`Progress for ${goal.title}`}
-                    />
+                    {!isReadOnlyView && (
+                      <input
+                        type="range"
+                        className="progress-slider"
+                        min={0}
+                        max={100}
+                        value={goal.progress}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          setGoalProgress(goal.id, Number(e.target.value))
+                        }
+                        aria-label={`Progress for ${goal.title}`}
+                      />
+                    )}
                   </div>
                 )}
 
                 {!isCompleted && (
                   <div className="task-time-row">
-                    <TimeRangePicker
-                      size="md"
-                      timeStart={goal.timeStart}
-                      timeEnd={goal.timeEnd}
-                      editing={editingTimeId === goal.id}
-                      onEditingChange={(editing) =>
-                        setEditingTimeId(editing ? goal.id : null)
-                      }
-                      onChange={(start, end) =>
-                        updateGoalTime(goal.id, start, end)
-                      }
-                    />
+                    {isReadOnlyView ? (
+                      timeDisplay.length > 0 && (
+                        <span className="task-time-readonly">{timeDisplay}</span>
+                      )
+                    ) : (
+                      <TimeRangePicker
+                        size="md"
+                        timeStart={goal.timeStart}
+                        timeEnd={goal.timeEnd}
+                        editing={editingTimeId === goal.id}
+                        onEditingChange={(editing) =>
+                          setEditingTimeId(editing ? goal.id : null)
+                        }
+                        onChange={(start, end) =>
+                          updateGoalTime(goal.id, start, end)
+                        }
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -240,14 +291,16 @@ export function GoalBoard() {
         })}
       </ul>
 
-      <GoalContextMenu
-        menu={menu}
-        onClose={() => setMenu(null)}
-        onChangeTime={(id) => setEditingTimeId(id)}
-        onDelete={deleteGoal}
-        onRestore={restoreGoal}
-        onSetMain={(id) => setMainGoal(id)}
-      />
+      {!isReadOnlyView && (
+        <GoalContextMenu
+          menu={menu}
+          onClose={() => setMenu(null)}
+          onChangeTime={(id) => setEditingTimeId(id)}
+          onDelete={deleteGoal}
+          onRestore={restoreGoal}
+          onSetMain={(id) => setMainGoal(id)}
+        />
+      )}
     </section>
   );
 }

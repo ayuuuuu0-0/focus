@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   mainGoalId: "focus_main_goal_id",
   /** Secondary active task currently in view — check-ins & reminders UI */
   focusedGoalId: "focus_focused_goal_id",
+  /** End-of-day board snapshots for history view */
+  daySnapshots: "focus_day_snapshots",
 } as const;
 
 /** Reminder interval presets (minutes) */
