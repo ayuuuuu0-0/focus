@@ -112,10 +112,17 @@ export function SettingsPanel() {
               updateSettings({ notificationsEnabled: e.target.checked });
               if (e.target.checked) void requestNotifications();
             }}
+            aria-describedby="notif-hint"
           />
           <span className="toggle-slider" />
         </label>
       </div>
+
+      <p id="notif-hint" className="notif-hint">
+        {settings.notificationsEnabled
+          ? "You'll get gentle check-in reminders. If your browser asks, tap Allow."
+          : "Turn on to get gentle check-in reminders while you work."}
+      </p>
 
       <div className="reminder-row" style={{ marginTop: "0.75rem" }}>
         <span>focus hours</span>
@@ -148,10 +155,6 @@ export function SettingsPanel() {
 
       <p style={{ fontSize: "0.65rem", color: "var(--text-dim)", marginTop: "0.35rem" }}>
         No pings outside {settings.focusStartHour}:00–{settings.focusEndHour}:00
-      </p>
-
-      <p className="notif-hint">
-        Notifications use the browser&apos;s built-in API (no install). Allow permission when prompted.
       </p>
 
       <button type="button" className="test-reminder-btn" onClick={testReminder}>
