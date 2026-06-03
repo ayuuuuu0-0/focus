@@ -184,25 +184,6 @@ body::before {
   font-weight: 600;
 }
 
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-}
-
-.icon-btn:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
 .grid {
   display: grid;
   grid-template-columns: 1fr 340px;
