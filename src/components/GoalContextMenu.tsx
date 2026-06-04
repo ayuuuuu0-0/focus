@@ -11,6 +11,8 @@ export interface GoalMenuState {
 
 interface GoalContextMenuProps {
   menu: GoalMenuState | null;
+  /** Planned-day board — only time edit and delete */
+  isPlanView?: boolean;
   onClose: () => void;
   onChangeTime: (goalId: string) => void;
   onDelete: (goalId: string) => void;
@@ -21,6 +23,7 @@ interface GoalContextMenuProps {
 /** Right-click menu for goal actions */
 export function GoalContextMenu({
   menu,
+  isPlanView = false,
   onClose,
   onChangeTime,
   onDelete,
@@ -55,7 +58,7 @@ export function GoalContextMenu({
       style={{ left: menu.x, top: menu.y }}
       role="menu"
     >
-      {menu.isCompleted ? (
+      {menu.isCompleted && !isPlanView ? (
         <button
           type="button"
           role="menuitem"
@@ -78,16 +81,18 @@ export function GoalContextMenu({
           >
             Change time
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              onSetMain(menu.goalId);
-              onClose();
-            }}
-          >
-            Set as main task
-          </button>
+          {!isPlanView && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onSetMain(menu.goalId);
+                onClose();
+              }}
+            >
+              Set as main task
+            </button>
+          )}
         </>
       )}
       <button

@@ -1,13 +1,8 @@
+import { todayKey } from "./dates";
 import type { StreakData } from "./types";
 
-/** Today's date as YYYY-MM-DD in local timezone */
-export function todayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+export { todayKey } from "./dates";
+export { tomorrowKey } from "./dates";
 
 /** Record one completed goal for today */
 export function recordGoalCompletion(streaks: StreakData): StreakData {

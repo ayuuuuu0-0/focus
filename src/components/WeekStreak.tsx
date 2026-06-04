@@ -4,7 +4,17 @@ import { useFocus } from "@/context/FocusContext";
 
 /** Weekly strip — tap a day to view that day's saved board */
 export function WeekStreak() {
-  const { weekDays, selectedDate, setSelectedDate } = useFocus();
+  const {
+    weekDays,
+    selectedDate,
+    setSelectedDate,
+    tomorrowDate,
+    tomorrowPlanCount,
+    openPlanTomorrow,
+    isPlanView,
+  } = useFocus();
+
+  const tomorrowSelected = selectedDate === tomorrowDate;
 
   return (
     <nav className="week-nav reveal" style={{ "--d": 3 } as React.CSSProperties} aria-label="Week streak">
@@ -41,6 +51,29 @@ export function WeekStreak() {
             </button>
           );
         })}
+        <button
+          type="button"
+          className={[
+            "week-day",
+            "week-day-tomorrow",
+            tomorrowSelected || isPlanView ? "selected" : "",
+            tomorrowPlanCount > 0 ? "has-activity" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          onClick={openPlanTomorrow}
+          aria-pressed={tomorrowSelected}
+          aria-label={`Tomorrow: ${tomorrowPlanCount} tasks planned`}
+          title={`Tomorrow: ${tomorrowPlanCount} tasks planned`}
+        >
+          {tomorrowPlanCount > 0 && (
+            <span className="count" aria-hidden="true">
+              {tomorrowPlanCount}
+            </span>
+          )}
+          <span className="week-day-label">+1</span>
+          <span className="dot" aria-hidden="true" />
+        </button>
       </div>
     </nav>
   );

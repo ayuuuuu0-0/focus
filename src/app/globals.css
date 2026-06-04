@@ -884,6 +884,55 @@ body::before {
   background: rgba(168, 85, 247, 0.12);
 }
 
+.day-view-banner-plan {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.06);
+}
+
+.plan-tomorrow-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.65rem;
+}
+
+.plan-tomorrow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+  color: var(--accent-purple);
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.plan-tomorrow-btn:hover {
+  background: rgba(168, 85, 247, 0.14);
+}
+
+.plan-tomorrow-count {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.1rem;
+  text-align: center;
+  color: var(--bg);
+  background: var(--accent-purple);
+  border-radius: 999px;
+}
+
+.week-day-tomorrow .week-day-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+}
+
 .day-view-empty {
   margin: 0.5rem 0 1rem;
   padding: 1rem 1.1rem;

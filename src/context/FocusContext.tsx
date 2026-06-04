@@ -26,19 +26,30 @@ import {
   requestNotificationPermission,
   showGoalNotification,
 } from "@/lib/reminders";
+import { isFutureDateKey, isPastDateKey, todayKey, tomorrowKey } from "@/lib/dates";
+import {
+  applyPlannedBoardForDate,
+  getPlannedGoals,
+  plannedGoalCount,
+  setPlannedGoalsForDate,
+} from "@/lib/plannedDays";
 import {
   loadDaySnapshots,
   loadFocusedGoalId,
   loadGoals,
+  loadLastBoardDate,
   loadLastReminderAt,
   loadMainGoalId,
+  loadPlannedDays,
   loadSettings,
   loadStreaks,
   saveDaySnapshots,
   saveFocusedGoalId,
   saveGoals,
+  saveLastBoardDate,
   saveLastReminderAt,
   saveMainGoalId,
+  savePlannedDays,
   saveSettings,
   saveStreaks,
 } from "@/lib/storage";
@@ -50,7 +61,6 @@ import {
 import {
   computeCurrentStreak,
   recordGoalCompletion,
-  todayKey,
   undoGoalCompletion,
   weekStrip,
 } from "@/lib/streaks";
@@ -59,6 +69,7 @@ import type {
   CheckinMood,
   DaySnapshotStore,
   Goal,
+  PlannedDaysStore,
   Settings,
   StreakData,
 } from "@/lib/types";
@@ -70,8 +81,15 @@ interface FocusContextValue {
   displayMainGoalId: string | null;
   displayFocusedGoalId: string | null;
   selectedDate: string;
+  /** Viewing a past day (snapshot only) */
   isReadOnlyView: boolean;
+  /** Viewing a future day — editable planned tasks */
+  isPlanView: boolean;
   hasSnapshotForSelected: boolean;
+  tomorrowDate: string;
+  tomorrowPlanCount: number;
+  openPlanTomorrow: () => void;
+  backToToday: () => void;
   settings: Settings;
   streaks: StreakData;
   checkIn: CheckInState;
@@ -154,8 +172,23 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const [mainGoalId, setMainGoalId] = useState<string | null>(null);
   const [focusedGoalId, setFocusedGoalId] = useState<string | null>(null);
   const [daySnapshots, setDaySnapshots] = useState<DaySnapshotStore>({ days: {} });
+  const [plannedDays, setPlannedDays] = useState<PlannedDaysStore>({ days: {} });
   const [selectedDate, setSelectedDate] = useState(() => todayKey());
   const [hydrated, setHydrated] = useState(false);
+
+  const isPlanView = isFutureDateKey(selectedDate);
+  const isReadOnlyView = isPastDateKey(selectedDate);
+  const tomorrowDate = tomorrowKey();
+
+  const updatePlannedGoals = useCallback(
+    (dateKey: string, updater: (current: Goal[]) => Goal[]) => {
+      setPlannedDays((prev) => {
+        const nextGoals = sortGoals(updater(getPlannedGoals(prev, dateKey)));
+        return setPlannedGoalsForDate(prev, dateKey, nextGoals);
+      });
+    },
+    []
+  );
 
   const syncMainAndFocused = useCallback(
     (
@@ -181,20 +214,45 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    const stored = loadGoals();
+    const today = todayKey();
+    let snapshots = loadDaySnapshots();
+    let planned = loadPlannedDays();
+    let stored = loadGoals();
+    const lastBoardDate = loadLastBoardDate();
+
+    if (lastBoardDate.length > 0 && lastBoardDate !== today) {
+      if (stored.length > 0) {
+        snapshots = upsertDaySnapshot(
+          snapshots,
+          lastBoardDate,
+          createDaySnapshot(
+            stored,
+            loadMainGoalId(),
+            loadFocusedGoalId()
+          )
+        );
+      }
+
+      const applied = applyPlannedBoardForDate(planned, today);
+      planned = applied.store;
+      if (applied.goals !== null) {
+        stored = applied.goals;
+      }
+    }
+
     const initial =
       stored.length > 0 ? ensureAtLeastOneActive(stored) : SEED_GOALS;
+
     setGoals(initial);
     setSettings(loadSettings());
     setStreaks(loadStreaks());
-    setDaySnapshots(loadDaySnapshots());
-    setSelectedDate(todayKey());
+    setDaySnapshots(snapshots);
+    setPlannedDays(planned);
+    setSelectedDate(today);
+    saveLastBoardDate(today);
+
     const main = resolveMainGoalId(initial, loadMainGoalId());
-    const focused = resolveFocusedGoalId(
-      initial,
-      loadFocusedGoalId(),
-      main
-    );
+    const focused = resolveFocusedGoalId(initial, loadFocusedGoalId(), main);
     setMainGoalId(main);
     setFocusedGoalId(focused);
     saveMainGoalId(main);
@@ -244,6 +302,11 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     saveDaySnapshots(daySnapshots);
   }, [daySnapshots, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    savePlannedDays(plannedDays);
+  }, [plannedDays, hydrated]);
+
   const triggerCheckIn = useCallback(
     (goalId: string | null) => {
       const focusedId =
@@ -289,6 +352,11 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const addGoal = useCallback(
     (title: string, tag: string, timeStart: string, timeEnd: string) => {
       const g = createGoal(title, tag, timeStart, timeEnd);
+      if (isPlanView) {
+        updatePlannedGoals(selectedDate, (prev) => [...prev, g]);
+        return;
+      }
+
       setGoals((prev) => {
         const hasMain = resolveMainGoalId(prev, mainGoalId) !== null;
         const next = sortGoals([
@@ -301,7 +369,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-    [mainGoalId, syncMainAndFocused]
+    [isPlanView, selectedDate, mainGoalId, syncMainAndFocused, updatePlannedGoals]
   );
 
   const setGoalProgress = useCallback((id: string, progress: number) => {
@@ -370,6 +438,13 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const deleteGoal = useCallback(
     (id: string) => {
+      if (isPlanView) {
+        updatePlannedGoals(selectedDate, (prev) =>
+          prev.filter((g) => g.id !== id)
+        );
+        return;
+      }
+
       setGoals((prev) => {
         const next = ensureAtLeastOneActive(
           sortGoals(prev.filter((g) => g.id !== id))
@@ -380,18 +455,34 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-    [mainGoalId, focusedGoalId, syncMainAndFocused]
+    [
+      isPlanView,
+      selectedDate,
+      mainGoalId,
+      focusedGoalId,
+      syncMainAndFocused,
+      updatePlannedGoals,
+    ]
   );
 
   const updateGoalTime = useCallback(
     (id: string, timeStart: string, timeEnd: string) => {
+      if (isPlanView) {
+        updatePlannedGoals(selectedDate, (prev) =>
+          prev.map((g) =>
+            g.id === id ? { ...g, timeStart, timeEnd } : g
+          )
+        );
+        return;
+      }
+
       setGoals((prev) =>
         prev.map((g) =>
           g.id === id ? { ...g, timeStart, timeEnd } : g
         )
       );
     },
-    []
+    [isPlanView, selectedDate, updatePlannedGoals]
   );
 
   const toggleActiveGoal = useCallback(
@@ -531,26 +622,45 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const weekDays = useMemo(() => weekStrip(streaks.days), [streaks]);
 
-  const isReadOnlyView = selectedDate !== todayKey();
   const selectedSnapshot = useMemo(
     () => getDaySnapshot(daySnapshots, selectedDate),
     [daySnapshots, selectedDate]
   );
   const hasSnapshotForSelected = selectedSnapshot !== null;
 
+  const tomorrowPlanCount = useMemo(
+    () => plannedGoalCount(plannedDays, tomorrowDate),
+    [plannedDays, tomorrowDate]
+  );
+
+  const openPlanTomorrow = useCallback(() => {
+    setSelectedDate(tomorrowKey());
+  }, []);
+
+  const backToToday = useCallback(() => {
+    setSelectedDate(todayKey());
+  }, []);
+
   const displayGoals = useMemo(() => {
-    if (!isReadOnlyView) return sortGoals(goals);
-    if (!selectedSnapshot) return [];
-    return sortGoals(selectedSnapshot.goals);
-  }, [isReadOnlyView, goals, selectedSnapshot]);
+    if (isPlanView) {
+      return sortGoals(getPlannedGoals(plannedDays, selectedDate));
+    }
+    if (isReadOnlyView) {
+      if (!selectedSnapshot) return [];
+      return sortGoals(selectedSnapshot.goals);
+    }
+    return sortGoals(goals);
+  }, [isPlanView, isReadOnlyView, goals, plannedDays, selectedDate, selectedSnapshot]);
 
-  const displayMainGoalId = isReadOnlyView
-    ? (selectedSnapshot?.mainGoalId ?? null)
-    : mainGoalId;
+  const displayMainGoalId =
+    isReadOnlyView || isPlanView
+      ? null
+      : mainGoalId;
 
-  const displayFocusedGoalId = isReadOnlyView
-    ? (selectedSnapshot?.focusedGoalId ?? null)
-    : focusedGoalId;
+  const displayFocusedGoalId =
+    isReadOnlyView || isPlanView
+      ? null
+      : focusedGoalId;
 
   const value: FocusContextValue = {
     goals: sortGoals(goals),
@@ -559,7 +669,12 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     displayFocusedGoalId,
     selectedDate,
     isReadOnlyView,
+    isPlanView,
     hasSnapshotForSelected,
+    tomorrowDate,
+    tomorrowPlanCount,
+    openPlanTomorrow,
+    backToToday,
     settings,
     streaks,
     checkIn,

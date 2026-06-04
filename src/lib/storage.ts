@@ -1,5 +1,11 @@
 import { STORAGE_KEYS } from "./constants";
-import type { Goal, Settings, StreakData, DaySnapshotStore } from "./types";
+import type {
+  Goal,
+  PlannedDaysStore,
+  Settings,
+  StreakData,
+  DaySnapshotStore,
+} from "./types";
 import {
   DEFAULT_FOCUS_END_HOUR,
   DEFAULT_FOCUS_START_HOUR,
@@ -114,4 +120,27 @@ export function loadDaySnapshots(): DaySnapshotStore {
 
 export function saveDaySnapshots(store: DaySnapshotStore): void {
   writeStorage(STORAGE_KEYS.daySnapshots, store);
+}
+
+export function loadPlannedDays(): PlannedDaysStore {
+  return readStorage<PlannedDaysStore>(STORAGE_KEYS.plannedDays, { days: {} });
+}
+
+export function savePlannedDays(store: PlannedDaysStore): void {
+  writeStorage(STORAGE_KEYS.plannedDays, store);
+}
+
+export function loadLastBoardDate(): string {
+  if (!isBrowser()) return "";
+  const raw = localStorage.getItem(STORAGE_KEYS.lastBoardDate);
+  return raw ?? "";
+}
+
+export function saveLastBoardDate(dateKey: string): void {
+  if (!isBrowser()) return;
+  if (dateKey.length === 0) {
+    localStorage.removeItem(STORAGE_KEYS.lastBoardDate);
+    return;
+  }
+  localStorage.setItem(STORAGE_KEYS.lastBoardDate, dateKey);
 }

@@ -10,6 +10,10 @@ export const STORAGE_KEYS = {
   focusedGoalId: "focus_focused_goal_id",
   /** End-of-day board snapshots for history view */
   daySnapshots: "focus_day_snapshots",
+  /** Tasks planned for future dates (e.g. tomorrow) */
+  plannedDays: "focus_planned_days",
+  /** Last calendar day the live board was active — drives day rollover */
+  lastBoardDate: "focus_last_board_date",
 } as const;
 
 /** Reminder interval presets (minutes) */

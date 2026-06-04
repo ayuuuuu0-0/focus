@@ -10,8 +10,11 @@ export function ActiveGoalTabs() {
     displayMainGoalId,
     displayFocusedGoalId,
     isReadOnlyView,
+    isPlanView,
     setFocusedGoal,
   } = useFocus();
+
+  if (isPlanView) return null;
 
   const secondaries = displayGoals.filter(
     (g) => g.status === GOAL_STATUS.active && g.id !== displayMainGoalId

@@ -9,7 +9,6 @@ import { ActiveGoalTabs } from "@/components/ActiveGoalTabs";
 import { TimeRangePicker } from "@/components/TimeRangePicker";
 import { GoalContextMenu, type GoalMenuState } from "@/components/GoalContextMenu";
 import { formatSnapshotDateLabel } from "@/lib/snapshots";
-import { todayKey } from "@/lib/streaks";
 import { formatTimeRangeDisplay } from "@/lib/time";
 
 /** Goal list and add-goal form */
@@ -20,8 +19,11 @@ export function GoalBoard() {
     displayFocusedGoalId,
     selectedDate,
     isReadOnlyView,
+    isPlanView,
     hasSnapshotForSelected,
-    setSelectedDate,
+    tomorrowPlanCount,
+    openPlanTomorrow,
+    backToToday,
     addGoal,
     setGoalProgress,
     completeGoal,
@@ -59,25 +61,51 @@ export function GoalBoard() {
 
   const dateLabel = formatSnapshotDateLabel(selectedDate);
 
+  const showAddForm = !isReadOnlyView;
+  const boardClass = isReadOnlyView
+    ? "goal-board-readonly"
+    : isPlanView
+      ? "goal-board-plan"
+      : undefined;
+
   return (
-    <section className={isReadOnlyView ? "goal-board-readonly" : undefined}>
+    <section className={boardClass}>
       {isReadOnlyView && (
         <div className="day-view-banner reveal" style={{ "--d": 1 } as React.CSSProperties}>
           <span className="day-view-label">
             Viewing <strong>{dateLabel}</strong>
             <span className="day-view-hint">read only</span>
           </span>
-          <button
-            type="button"
-            className="day-view-back"
-            onClick={() => setSelectedDate(todayKey())}
-          >
+          <button type="button" className="day-view-back" onClick={backToToday}>
             back to today
           </button>
         </div>
       )}
 
-      {!isReadOnlyView && (
+      {isPlanView && (
+        <div className="day-view-banner day-view-banner-plan reveal" style={{ "--d": 1 } as React.CSSProperties}>
+          <span className="day-view-label">
+            Planning for <strong>{dateLabel}</strong>
+            <span className="day-view-hint">starts at midnight</span>
+          </span>
+          <button type="button" className="day-view-back" onClick={backToToday}>
+            back to today
+          </button>
+        </div>
+      )}
+
+      {!isReadOnlyView && !isPlanView && (
+        <div className="plan-tomorrow-row reveal" style={{ "--d": 1 } as React.CSSProperties}>
+          <button type="button" className="plan-tomorrow-btn" onClick={openPlanTomorrow}>
+            plan tomorrow
+            {tomorrowPlanCount > 0 && (
+              <span className="plan-tomorrow-count">{tomorrowPlanCount}</span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {showAddForm && (
         <form
           className="task-input-wrap task-input-wrap-add reveal"
           style={{ "--d": 1 } as React.CSSProperties}
@@ -86,7 +114,11 @@ export function GoalBoard() {
           <input
             className="task-input"
             type="text"
-            placeholder="what do you need to do today?"
+            placeholder={
+              isPlanView
+                ? "what do you need to do tomorrow?"
+                : "what do you need to do today?"
+            }
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             aria-label="Goal title"
@@ -126,7 +158,7 @@ export function GoalBoard() {
         </form>
       )}
 
-      <ActiveGoalTabs />
+      {!isPlanView && <ActiveGoalTabs />}
 
       {isReadOnlyView && !hasSnapshotForSelected && (
         <p className="day-view-empty reveal" style={{ "--d": 2 } as React.CSSProperties}>
@@ -134,16 +166,25 @@ export function GoalBoard() {
         </p>
       )}
 
-      <ul className={`task-list ${isReadOnlyView ? "task-list-readonly" : ""}`} role="list">
+      {isPlanView && displayGoals.length === 0 && (
+        <p className="day-view-empty reveal" style={{ "--d": 2 } as React.CSSProperties}>
+          No tasks planned yet. Add what you want on the board tomorrow.
+        </p>
+      )}
+
+      <ul
+        className={`task-list ${isReadOnlyView || isPlanView ? "task-list-readonly" : ""}`}
+        role="list"
+      >
         {displayGoals.map((goal) => {
-          const isActive = goal.status === GOAL_STATUS.active;
-          const isCompleted = goal.status === GOAL_STATUS.completed;
+          const isActive = !isPlanView && goal.status === GOAL_STATUS.active;
+          const isCompleted = !isPlanView && goal.status === GOAL_STATUS.completed;
           const isMain = isActive && goal.id === displayMainGoalId;
           const isFocused = isActive && goal.id === displayFocusedGoalId;
           const isSecondary = isActive && !isMain;
 
           let pillClass = "pill-upnext";
-          let pillLabel = "up next";
+          let pillLabel = isPlanView ? "planned" : "up next";
           if (isCompleted) {
             pillClass = "pill-done";
             pillLabel = "done";
@@ -163,7 +204,7 @@ export function GoalBoard() {
               className={`task-item ${goal.status} ${isMain ? "is-main" : ""} ${isFocused ? "focused" : ""}`}
               role="listitem"
               onClick={() => {
-                if (!isReadOnlyView && isActive) setFocusedGoal(goal.id);
+                if (!isReadOnlyView && !isPlanView && isActive) setFocusedGoal(goal.id);
               }}
               onContextMenu={(e) => {
                 if (!isReadOnlyView) openContextMenu(e, goal.id, isCompleted);
@@ -178,7 +219,7 @@ export function GoalBoard() {
                     )}
                   </div>
                   <div className="task-actions">
-                    {isReadOnlyView ? (
+                    {isReadOnlyView || isPlanView ? (
                       <span className={`pill ${pillClass}`}>{pillLabel}</span>
                     ) : (
                       <>
@@ -294,6 +335,7 @@ export function GoalBoard() {
       {!isReadOnlyView && (
         <GoalContextMenu
           menu={menu}
+          isPlanView={isPlanView}
           onClose={() => setMenu(null)}
           onChangeTime={(id) => setEditingTimeId(id)}
           onDelete={deleteGoal}

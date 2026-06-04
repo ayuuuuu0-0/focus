@@ -50,6 +50,11 @@ export interface DaySnapshotStore {
   days: Record<string, DaySnapshot>;
 }
 
+/** Future-day task boards keyed by YYYY-MM-DD (e.g. tomorrow) */
+export interface PlannedDaysStore {
+  days: Record<string, Goal[]>;
+}
+
 export interface CheckInState {
   open: boolean;
   goalId: string | null;
