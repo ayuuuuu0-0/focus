@@ -1150,6 +1150,21 @@ body::before {
   color: var(--accent-purple);
 }
 
+.stat-card-clickable {
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.stat-card-clickable:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.stat-card-clickable:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

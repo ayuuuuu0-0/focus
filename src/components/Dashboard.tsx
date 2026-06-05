@@ -1,6 +1,6 @@
 "use client";
 
-import { FocusProvider } from "@/context/FocusContext";
+import { FocusProvider, useFocus } from "@/context/FocusContext";
 import { Header } from "./Header";
 import { GoalBoard } from "./GoalBoard";
 import { WeekStreak } from "./WeekStreak";
@@ -9,16 +9,28 @@ import { SettingsPanel } from "./SettingsPanel";
 import { StatsGrid } from "./StatsGrid";
 import { CheckInModal } from "./CheckInModal";
 import { SignatureMark } from "./SignatureMark";
+import { GoalTimerOverlay } from "./GoalTimerOverlay";
 import { useEffect } from "react";
-import { useFocus } from "@/context/FocusContext";
 
 function DashboardInner() {
-  const { requestNotifications, settings, hydrated } = useFocus();
+  const {
+    requestNotifications,
+    settings,
+    hydrated,
+    goals,
+    timerGoalId,
+    closeGoalTimer,
+  } = useFocus();
 
   useEffect(() => {
     if (!hydrated || !settings.notificationsEnabled) return;
     void requestNotifications();
   }, [hydrated, settings.notificationsEnabled, requestNotifications]);
+
+  const timerGoal =
+    timerGoalId !== null
+      ? goals.find((g) => g.id === timerGoalId) ?? null
+      : null;
 
   return (
     <>
@@ -39,6 +51,13 @@ function DashboardInner() {
         </div>
       </div>
       <CheckInModal />
+      {timerGoal !== null && (
+        <GoalTimerOverlay
+          goal={timerGoal}
+          settings={settings}
+          onClose={closeGoalTimer}
+        />
+      )}
       <SignatureMark />
     </>
   );

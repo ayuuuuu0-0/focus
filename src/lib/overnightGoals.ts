@@ -95,3 +95,15 @@ export function isContinuationDisplay(
     !goalAppearsOnDate(goal, dateKey)
   );
 }
+
+/** Active goals visible on a given date's board */
+export function getActiveGoalsForDate(
+  goals: Goal[],
+  dateKey: string
+): Goal[] {
+  const boardGoals = mergeGoalsForDateDisplay(
+    getAnchoredGoalsForDate(goals, dateKey),
+    getContinuationGoalsForDate(goals, dateKey)
+  );
+  return boardGoals.filter((g) => g.status === GOAL_STATUS.active);
+}

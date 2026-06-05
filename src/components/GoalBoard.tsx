@@ -8,7 +8,6 @@ import { CompleteIcon } from "@/components/icons/CompleteIcon";
 import { ActiveGoalTabs } from "@/components/ActiveGoalTabs";
 import { TimeRangePicker } from "@/components/TimeRangePicker";
 import { GoalContextMenu, type GoalMenuState } from "@/components/GoalContextMenu";
-import { GoalTimerOverlay } from "@/components/GoalTimerOverlay";
 import { isContinuationDisplay } from "@/lib/overnightGoals";
 import { formatSnapshotDateLabel } from "@/lib/snapshots";
 import { formatTimeRangeDisplay } from "@/lib/time";
@@ -35,7 +34,7 @@ export function GoalBoard() {
     toggleActiveGoal,
     setMainGoal,
     setFocusedGoal,
-    settings,
+    openGoalTimer,
   } = useFocus();
 
   const [title, setTitle] = useState("");
@@ -45,7 +44,6 @@ export function GoalBoard() {
   const [addTimeEditing, setAddTimeEditing] = useState(true);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [menu, setMenu] = useState<GoalMenuState | null>(null);
-  const [timerGoalId, setTimerGoalId] = useState<string | null>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -66,10 +64,6 @@ export function GoalBoard() {
   const dateLabel = formatSnapshotDateLabel(selectedDate);
 
   const showAddForm = !isReadOnlyView;
-  const timerGoal =
-    timerGoalId !== null
-      ? displayGoals.find((g) => g.id === timerGoalId) ?? null
-      : null;
 
   const boardClass = isReadOnlyView
     ? "goal-board-readonly"
@@ -354,15 +348,7 @@ export function GoalBoard() {
           onDelete={deleteGoal}
           onRestore={restoreGoal}
           onSetMain={(id) => setMainGoal(id)}
-          onOpenTimer={(id) => setTimerGoalId(id)}
-        />
-      )}
-
-      {timerGoal !== null && (
-        <GoalTimerOverlay
-          goal={timerGoal}
-          settings={settings}
-          onClose={() => setTimerGoalId(null)}
+          onOpenTimer={openGoalTimer}
         />
       )}
     </section>

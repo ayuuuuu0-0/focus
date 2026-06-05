@@ -6,7 +6,7 @@ import { computeMinutesLeftForGoal, formatDuration } from "@/lib/time";
 
 /** 2×2 stats cards — main task drives time left */
 export function StatsGrid() {
-  const { stats } = useFocus();
+  const { stats, openGoalTimer } = useFocus();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -18,6 +18,13 @@ export function StatsGrid() {
   const minutesLeft = computeMinutesLeftForGoal(stats.main, now);
   const leftLabel =
     minutesLeft === 0 ? "0m" : `~${formatDuration(minutesLeft)}`;
+  const canOpenTimer =
+    stats.main !== undefined && stats.main.timeEnd.length > 0;
+
+  const handleLeftDoubleClick = () => {
+    if (!canOpenTimer || stats.mainId === null) return;
+    openGoalTimer(stats.mainId);
+  };
 
   return (
     <section className="stats-grid reveal" style={{ "--d": 4 } as React.CSSProperties}>
@@ -37,7 +44,20 @@ export function StatsGrid() {
         </span>
         <span className="stat-label">main task</span>
       </div>
-      <div className="stat-card">
+      <div
+        className={`stat-card ${canOpenTimer ? "stat-card-clickable" : ""}`}
+        onDoubleClick={handleLeftDoubleClick}
+        title={canOpenTimer ? "Double-click to open timer" : undefined}
+        role={canOpenTimer ? "button" : undefined}
+        tabIndex={canOpenTimer ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (!canOpenTimer || stats.mainId === null) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openGoalTimer(stats.mainId);
+          }
+        }}
+      >
         <span className="stat-value">{leftLabel}</span>
         <span className="stat-label">left on main</span>
       </div>

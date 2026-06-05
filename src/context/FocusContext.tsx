@@ -38,6 +38,7 @@ import {
   flattenPlannedGoals,
   getAnchoredGoalsForDate,
   getContinuationGoalsForDate,
+  getActiveGoalsForDate,
   getOvernightCarryOverGoals,
   mergeGoalsForDateDisplay,
   mergeGoalsWithCarryOver,
@@ -131,6 +132,10 @@ interface FocusContextValue {
   closeCheckIn: () => void;
   openCheckIn: () => void;
   requestNotifications: () => Promise<void>;
+  /** Open full-screen timer for a goal */
+  openGoalTimer: (goalId: string) => void;
+  closeGoalTimer: () => void;
+  timerGoalId: string | null;
 }
 
 const FocusContext = createContext<FocusContextValue | null>(null);
@@ -160,6 +165,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const [plannedDays, setPlannedDays] = useState<PlannedDaysStore>({ days: {} });
   const [selectedDate, setSelectedDate] = useState(() => todayKey());
   const [hydrated, setHydrated] = useState(false);
+  const [timerGoalId, setTimerGoalId] = useState<string | null>(null);
 
   const isPlanView = isFutureDateKey(selectedDate);
   const isReadOnlyView = isPastDateKey(selectedDate);
@@ -357,12 +363,14 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       }
 
       setGoals((prev) => {
-        const hasMain = resolveMainGoalId(prev, mainGoalId) !== null;
+        const today = todayKey();
+        const activesOnBoard = getActiveGoalsForDate(prev, today);
+        const shouldPromote = activesOnBoard.length === 0;
         const next = sortGoals(
-          [...prev, hasMain ? g : { ...g, status: GOAL_STATUS.active }],
+          [...prev, shouldPromote ? { ...g, status: GOAL_STATUS.active } : g],
           boardAnchorDate
         );
-        if (!hasMain) {
+        if (shouldPromote) {
           syncMainAndFocused(next, g.id, g.id);
         }
         return next;
@@ -371,7 +379,6 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     [
       isPlanView,
       selectedDate,
-      mainGoalId,
       boardAnchorDate,
       syncMainAndFocused,
       updatePlannedGoals,
@@ -647,6 +654,14 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     await requestNotificationPermission();
   }, []);
 
+  const openGoalTimer = useCallback((goalId: string) => {
+    setTimerGoalId(goalId);
+  }, []);
+
+  const closeGoalTimer = useCallback(() => {
+    setTimerGoalId(null);
+  }, []);
+
   const stats = useMemo(() => {
     const base = goalStats(goals, mainGoalId, focusedGoalId);
     return { ...base, streak: computeCurrentStreak(streaks.days) };
@@ -743,6 +758,9 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     closeCheckIn,
     openCheckIn,
     requestNotifications,
+    openGoalTimer,
+    closeGoalTimer,
+    timerGoalId,
   };
 
   return (
