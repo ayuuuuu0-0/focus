@@ -1,27 +1,42 @@
 import { GOAL_STATUS } from "./constants";
+import { goalSortTimestamp } from "./time";
 import type { Goal, GoalStatus } from "./types";
+
+/** Generate a unique goal id (works outside secure browser contexts) */
+function generateGoalId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `goal-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
 
 /** Create a new goal with defaults */
 export function createGoal(
   title: string,
   tag: string,
   timeStart: string,
-  timeEnd: string
+  timeEnd: string,
+  anchorDate: string
 ): Goal {
   return {
-    id: crypto.randomUUID(),
+    id: generateGoalId(),
     title,
     tag,
     timeStart,
     timeEnd,
+    anchorDate,
     progress: 0,
     status: GOAL_STATUS.upcoming,
     createdAt: new Date().toISOString(),
   };
 }
 
-/** Sort: active first, then upcoming by time, completed last */
-export function sortGoals(goals: Goal[]): Goal[] {
+/** Sort: active first, then upcoming by resolved start time, completed last */
+export function sortGoals(goals: Goal[], fallbackDateKey?: string): Goal[] {
   const order: Record<GoalStatus, number> = {
     [GOAL_STATUS.active]: 0,
     [GOAL_STATUS.upcoming]: 1,
@@ -30,9 +45,9 @@ export function sortGoals(goals: Goal[]): Goal[] {
   return [...goals].sort((a, b) => {
     const d = order[a.status] - order[b.status];
     if (d !== 0) return d;
-    if (a.timeStart.length > 0 && b.timeStart.length > 0) {
-      return a.timeStart.localeCompare(b.timeStart);
-    }
+    const ta = goalSortTimestamp(a, fallbackDateKey);
+    const tb = goalSortTimestamp(b, fallbackDateKey);
+    if (ta !== tb) return ta - tb;
     return a.createdAt.localeCompare(b.createdAt);
   });
 }

@@ -9,7 +9,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CHECKIN_MOOD, GOAL_STATUS, REMINDER_TICK_MS } from "@/lib/constants";
+import {
+  CHECKIN_MOOD,
+  GOAL_STATUS,
+  REMINDER_TICK_MS,
+  SEED_DEMO_TIME_END,
+  SEED_DEMO_TIME_START,
+  SEED_DEMO_TITLE,
+} from "@/lib/constants";
 import { playChime } from "@/lib/audio";
 import {
   createGoal,
@@ -27,6 +34,14 @@ import {
   showGoalNotification,
 } from "@/lib/reminders";
 import { isFutureDateKey, isPastDateKey, todayKey, tomorrowKey } from "@/lib/dates";
+import {
+  flattenPlannedGoals,
+  getAnchoredGoalsForDate,
+  getContinuationGoalsForDate,
+  getOvernightCarryOverGoals,
+  mergeGoalsForDateDisplay,
+  mergeGoalsWithCarryOver,
+} from "@/lib/overnightGoals";
 import {
   applyPlannedBoardForDate,
   getPlannedGoals,
@@ -122,44 +137,14 @@ const FocusContext = createContext<FocusContextValue | null>(null);
 
 const SEED_GOALS: Goal[] = [
   {
-    id: "seed-1",
-    title: "review PR feedback on auth module",
-    tag: "deep work",
-    timeStart: "",
-    timeEnd: "",
-    progress: 100,
-    status: GOAL_STATUS.completed,
-    createdAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-  },
-  {
-    id: "seed-2",
-    title: "system design notes — chapter 4",
-    tag: "learning",
-    timeStart: "10:00",
-    timeEnd: "12:30",
-    progress: 62,
+    id: "seed-demo",
+    title: SEED_DEMO_TITLE,
+    tag: "focus",
+    timeStart: SEED_DEMO_TIME_START,
+    timeEnd: SEED_DEMO_TIME_END,
+    anchorDate: todayKey(),
+    progress: 0,
     status: GOAL_STATUS.active,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "seed-3",
-    title: "standup prep + blockers doc",
-    tag: "meeting",
-    timeStart: "14:00",
-    timeEnd: "16:00",
-    progress: 0,
-    status: GOAL_STATUS.upcoming,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "seed-4",
-    title: "pair on caching layer spike",
-    tag: "deep work",
-    timeStart: "16:30",
-    timeEnd: "18:00",
-    progress: 0,
-    status: GOAL_STATUS.upcoming,
     createdAt: new Date().toISOString(),
   },
 ];
@@ -183,12 +168,23 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const updatePlannedGoals = useCallback(
     (dateKey: string, updater: (current: Goal[]) => Goal[]) => {
       setPlannedDays((prev) => {
-        const nextGoals = sortGoals(updater(getPlannedGoals(prev, dateKey)));
+        const nextGoals = sortGoals(
+          updater(getPlannedGoals(prev, dateKey)),
+          dateKey
+        );
         return setPlannedGoalsForDate(prev, dateKey, nextGoals);
       });
     },
     []
   );
+
+  const isGoalInPlanForDate = useCallback(
+    (id: string, dateKey: string) =>
+      getPlannedGoals(plannedDays, dateKey).some((g) => g.id === id),
+    [plannedDays]
+  );
+
+  const boardAnchorDate = isPlanView ? selectedDate : todayKey();
 
   const syncMainAndFocused = useCallback(
     (
@@ -233,10 +229,13 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         );
       }
 
+      const carryOver = getOvernightCarryOverGoals(stored, today);
       const applied = applyPlannedBoardForDate(planned, today);
       planned = applied.store;
       if (applied.goals !== null) {
-        stored = applied.goals;
+        stored = mergeGoalsWithCarryOver(applied.goals, carryOver);
+      } else {
+        stored = mergeGoalsWithCarryOver(stored, carryOver);
       }
     }
 
@@ -351,7 +350,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const addGoal = useCallback(
     (title: string, tag: string, timeStart: string, timeEnd: string) => {
-      const g = createGoal(title, tag, timeStart, timeEnd);
+      const g = createGoal(title, tag, timeStart, timeEnd, boardAnchorDate);
       if (isPlanView) {
         updatePlannedGoals(selectedDate, (prev) => [...prev, g]);
         return;
@@ -359,17 +358,24 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
       setGoals((prev) => {
         const hasMain = resolveMainGoalId(prev, mainGoalId) !== null;
-        const next = sortGoals([
-          ...prev,
-          hasMain ? g : { ...g, status: GOAL_STATUS.active },
-        ]);
+        const next = sortGoals(
+          [...prev, hasMain ? g : { ...g, status: GOAL_STATUS.active }],
+          boardAnchorDate
+        );
         if (!hasMain) {
           syncMainAndFocused(next, g.id, g.id);
         }
         return next;
       });
     },
-    [isPlanView, selectedDate, mainGoalId, syncMainAndFocused, updatePlannedGoals]
+    [
+      isPlanView,
+      selectedDate,
+      mainGoalId,
+      boardAnchorDate,
+      syncMainAndFocused,
+      updatePlannedGoals,
+    ]
   );
 
   const setGoalProgress = useCallback((id: string, progress: number) => {
@@ -439,15 +445,28 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const deleteGoal = useCallback(
     (id: string) => {
       if (isPlanView) {
-        updatePlannedGoals(selectedDate, (prev) =>
-          prev.filter((g) => g.id !== id)
-        );
+        if (isGoalInPlanForDate(id, selectedDate)) {
+          updatePlannedGoals(selectedDate, (prev) =>
+            prev.filter((g) => g.id !== id)
+          );
+          return;
+        }
+
+        setGoals((prev) => {
+          const next = ensureAtLeastOneActive(
+            sortGoals(prev.filter((g) => g.id !== id), todayKey())
+          );
+          const nextMain = id === mainGoalId ? null : mainGoalId;
+          const nextFocused = id === focusedGoalId ? null : focusedGoalId;
+          syncMainAndFocused(next, nextMain, nextFocused);
+          return next;
+        });
         return;
       }
 
       setGoals((prev) => {
         const next = ensureAtLeastOneActive(
-          sortGoals(prev.filter((g) => g.id !== id))
+          sortGoals(prev.filter((g) => g.id !== id), todayKey())
         );
         const nextMain = id === mainGoalId ? null : mainGoalId;
         const nextFocused = id === focusedGoalId ? null : focusedGoalId;
@@ -462,27 +481,40 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       focusedGoalId,
       syncMainAndFocused,
       updatePlannedGoals,
+      isGoalInPlanForDate,
     ]
   );
 
   const updateGoalTime = useCallback(
     (id: string, timeStart: string, timeEnd: string) => {
+      const anchorDate = boardAnchorDate;
+      const patch = { timeStart, timeEnd, anchorDate };
+
       if (isPlanView) {
-        updatePlannedGoals(selectedDate, (prev) =>
-          prev.map((g) =>
-            g.id === id ? { ...g, timeStart, timeEnd } : g
-          )
+        if (isGoalInPlanForDate(id, selectedDate)) {
+          updatePlannedGoals(selectedDate, (prev) =>
+            prev.map((g) => (g.id === id ? { ...g, ...patch } : g))
+          );
+          return;
+        }
+
+        setGoals((prev) =>
+          prev.map((g) => (g.id === id ? { ...g, ...patch } : g))
         );
         return;
       }
 
       setGoals((prev) =>
-        prev.map((g) =>
-          g.id === id ? { ...g, timeStart, timeEnd } : g
-        )
+        prev.map((g) => (g.id === id ? { ...g, ...patch } : g))
       );
     },
-    [isPlanView, selectedDate, updatePlannedGoals]
+    [
+      isPlanView,
+      selectedDate,
+      boardAnchorDate,
+      updatePlannedGoals,
+      isGoalInPlanForDate,
+    ]
   );
 
   const toggleActiveGoal = useCallback(
@@ -643,13 +675,26 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const displayGoals = useMemo(() => {
     if (isPlanView) {
-      return sortGoals(getPlannedGoals(plannedDays, selectedDate));
+      const anchored = getPlannedGoals(plannedDays, selectedDate);
+      const allSources = [...goals, ...flattenPlannedGoals(plannedDays)];
+      const continuations = getContinuationGoalsForDate(allSources, selectedDate);
+      return sortGoals(
+        mergeGoalsForDateDisplay(anchored, continuations),
+        selectedDate
+      );
     }
     if (isReadOnlyView) {
       if (!selectedSnapshot) return [];
-      return sortGoals(selectedSnapshot.goals);
+      return sortGoals(selectedSnapshot.goals, selectedDate);
     }
-    return sortGoals(goals);
+
+    const today = todayKey();
+    const anchored = getAnchoredGoalsForDate(goals, today);
+    const continuations = getContinuationGoalsForDate(goals, today);
+    return sortGoals(
+      mergeGoalsForDateDisplay(anchored, continuations),
+      today
+    );
   }, [isPlanView, isReadOnlyView, goals, plannedDays, selectedDate, selectedSnapshot]);
 
   const displayMainGoalId =
@@ -663,7 +708,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       : focusedGoalId;
 
   const value: FocusContextValue = {
-    goals: sortGoals(goals),
+    goals: sortGoals(goals, todayKey()),
     displayGoals,
     displayMainGoalId,
     displayFocusedGoalId,

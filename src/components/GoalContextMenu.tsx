@@ -18,6 +18,7 @@ interface GoalContextMenuProps {
   onDelete: (goalId: string) => void;
   onRestore: (goalId: string) => void;
   onSetMain: (goalId: string) => void;
+  onOpenTimer: (goalId: string) => void;
 }
 
 /** Right-click menu for goal actions */
@@ -29,6 +30,7 @@ export function GoalContextMenu({
   onDelete,
   onRestore,
   onSetMain,
+  onOpenTimer,
 }: GoalContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -71,6 +73,16 @@ export function GoalContextMenu({
         </button>
       ) : (
         <>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onOpenTimer(menu.goalId);
+              onClose();
+            }}
+          >
+            Open timer
+          </button>
           <button
             type="button"
             role="menuitem"

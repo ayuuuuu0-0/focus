@@ -51,5 +51,19 @@ export const SUGGESTED_TAGS = ["deep work", "meeting", "learning", "admin", "hea
 /** Reminder tick interval (ms) — how often we check if a ping is due */
 export const REMINDER_TICK_MS = 30_000;
 
+/** Goal timer UI tick interval (ms) */
+export const TIMER_TICK_MS = 250;
+
+/** Default seed demo task window */
+export const SEED_DEMO_TIME_START = "10:00";
+export const SEED_DEMO_TIME_END = "11:00";
+export const SEED_DEMO_TITLE = "demo task";
+
+/** Suffix shown when a time range ends on the next calendar day */
+export const OVERNIGHT_RANGE_SUFFIX = "(+1)";
+
+/** Badge label for overnight task continuation on the next day */
+export const GOAL_CONTINUATION_BADGE = "overnight";
+
 /** Week day labels (Mon–Sun) */
 export const WEEK_DAY_LABELS = ["M", "Tu", "W", "Th", "F", "Sa", "Su"] as const;

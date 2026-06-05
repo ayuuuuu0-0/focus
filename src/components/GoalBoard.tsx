@@ -2,12 +2,14 @@
 
 import { useState, FormEvent } from "react";
 import { useFocus } from "@/context/FocusContext";
-import { GOAL_STATUS } from "@/lib/constants";
+import { GOAL_STATUS, GOAL_CONTINUATION_BADGE } from "@/lib/constants";
 import { SUGGESTED_TAGS } from "@/lib/constants";
 import { CompleteIcon } from "@/components/icons/CompleteIcon";
 import { ActiveGoalTabs } from "@/components/ActiveGoalTabs";
 import { TimeRangePicker } from "@/components/TimeRangePicker";
 import { GoalContextMenu, type GoalMenuState } from "@/components/GoalContextMenu";
+import { GoalTimerOverlay } from "@/components/GoalTimerOverlay";
+import { isContinuationDisplay } from "@/lib/overnightGoals";
 import { formatSnapshotDateLabel } from "@/lib/snapshots";
 import { formatTimeRangeDisplay } from "@/lib/time";
 
@@ -33,6 +35,7 @@ export function GoalBoard() {
     toggleActiveGoal,
     setMainGoal,
     setFocusedGoal,
+    settings,
   } = useFocus();
 
   const [title, setTitle] = useState("");
@@ -42,6 +45,7 @@ export function GoalBoard() {
   const [addTimeEditing, setAddTimeEditing] = useState(true);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [menu, setMenu] = useState<GoalMenuState | null>(null);
+  const [timerGoalId, setTimerGoalId] = useState<string | null>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -62,6 +66,11 @@ export function GoalBoard() {
   const dateLabel = formatSnapshotDateLabel(selectedDate);
 
   const showAddForm = !isReadOnlyView;
+  const timerGoal =
+    timerGoalId !== null
+      ? displayGoals.find((g) => g.id === timerGoalId) ?? null
+      : null;
+
   const boardClass = isReadOnlyView
     ? "goal-board-readonly"
     : isPlanView
@@ -197,11 +206,12 @@ export function GoalBoard() {
           }
 
           const timeDisplay = formatTimeRangeDisplay(goal.timeStart, goal.timeEnd);
+          const isContinuation = isContinuationDisplay(goal, selectedDate);
 
           return (
             <li
               key={goal.id}
-              className={`task-item ${goal.status} ${isMain ? "is-main" : ""} ${isFocused ? "focused" : ""}`}
+              className={`task-item ${goal.status} ${isMain ? "is-main" : ""} ${isFocused ? "focused" : ""} ${isContinuation ? "task-continuation" : ""}`}
               role="listitem"
               onClick={() => {
                 if (!isReadOnlyView && !isPlanView && isActive) setFocusedGoal(goal.id);
@@ -216,6 +226,9 @@ export function GoalBoard() {
                     {goal.title}
                     {goal.tag.length > 0 && (
                       <span className="task-tag">{goal.tag}</span>
+                    )}
+                    {isContinuation && (
+                      <span className="task-badge-overnight">{GOAL_CONTINUATION_BADGE}</span>
                     )}
                   </div>
                   <div className="task-actions">
@@ -341,6 +354,15 @@ export function GoalBoard() {
           onDelete={deleteGoal}
           onRestore={restoreGoal}
           onSetMain={(id) => setMainGoal(id)}
+          onOpenTimer={(id) => setTimerGoalId(id)}
+        />
+      )}
+
+      {timerGoal !== null && (
+        <GoalTimerOverlay
+          goal={timerGoal}
+          settings={settings}
+          onClose={() => setTimerGoalId(null)}
         />
       )}
     </section>

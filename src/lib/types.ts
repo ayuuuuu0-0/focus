@@ -11,6 +11,8 @@ export interface Goal {
   tag: string;
   timeStart: string;
   timeEnd: string;
+  /** Calendar day (YYYY-MM-DD) when timeStart occurs */
+  anchorDate?: string;
   progress: number;
   status: GoalStatus;
   createdAt: string;

@@ -461,6 +461,21 @@ body::before {
   text-transform: lowercase;
 }
 
+.task-badge-overnight {
+  font-size: 0.6rem;
+  color: var(--accent-orange);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--accent-orange-dim);
+  border-radius: 4px;
+  background: var(--accent-orange-dim);
+}
+
+.task-item.task-continuation {
+  border-color: rgba(249, 115, 22, 0.15);
+}
+
 .task-item.active {
   cursor: pointer;
 }
@@ -1433,6 +1448,192 @@ body::before {
 
   .signature-a {
     font-size: 0.68rem;
+  }
+}
+
+/* ── Goal timer full-screen overlay ── */
+
+.timer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  animation: timer-fade-in 0.35s var(--ease-out) forwards;
+}
+
+@keyframes timer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.timer-overlay::before {
+  content: "";
+  position: absolute;
+  top: -15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70vw;
+  height: 55vh;
+  background: radial-gradient(ellipse, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.timer-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.timer-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+.timer-back {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.timer-back:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.timer-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.timer-arc-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+
+.timer-arc {
+  width: 100%;
+  height: 100%;
+}
+
+.timer-arc-track {
+  stroke: var(--border);
+  stroke-width: 3;
+}
+
+.timer-arc-progress {
+  stroke: var(--accent-green);
+  stroke-width: 3;
+  transition: stroke-dashoffset 0.25s linear;
+  filter: drop-shadow(0 0 8px rgba(57, 255, 106, 0.35));
+}
+
+.timer-overlay-complete .timer-arc-progress {
+  stroke: var(--accent-orange);
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.35));
+}
+
+.timer-display {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-display-complete {
+  color: var(--accent-orange);
+}
+
+.timer-controls {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.timer-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.timer-control-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+  transform: scale(1.04);
+}
+
+.timer-control-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.timer-status {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.timer-unavailable {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .timer-inner {
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .timer-arc-wrap {
+    width: 240px;
+    height: 240px;
+  }
+
+  .timer-display {
+    font-size: 2.6rem;
   }
 }
 

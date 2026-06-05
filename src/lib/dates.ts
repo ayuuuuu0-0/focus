@@ -34,3 +34,25 @@ export function isPastDateKey(dateKey: string, now = new Date()): boolean {
 export function isFutureDateKey(dateKey: string, now = new Date()): boolean {
   return compareDateKeys(dateKey, dateKeyFromDate(now)) > 0;
 }
+
+/** Parse YYYY-MM-DD into a local Date at midnight */
+export function parseDateKey(dateKey: string): Date | null {
+  if (dateKey.length === 0) return null;
+  const parts = dateKey.split("-");
+  if (parts.length !== 3) return null;
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return null;
+  }
+  return new Date(year, month - 1, day);
+}
+
+/** Shift a YYYY-MM-DD key by n calendar days */
+export function addDaysToDateKey(dateKey: string, n: number): string | null {
+  const base = parseDateKey(dateKey);
+  if (base === null) return null;
+  base.setDate(base.getDate() + n);
+  return dateKeyFromDate(base);
+}
