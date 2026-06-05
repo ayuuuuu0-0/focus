@@ -3,7 +3,7 @@
 import { useFocus } from "@/context/FocusContext";
 import { GOAL_STATUS } from "@/lib/constants";
 
-/** Switch focused task among secondary actives (main shown on its card) */
+/** Switch focused task among secondary actives (main shown on its card) */ 
 export function ActiveGoalTabs() {
   const {
     displayGoals,
@@ -53,3 +53,4 @@ export function ActiveGoalTabs() {
     </nav>
   );
 }
+// this is a test comment
