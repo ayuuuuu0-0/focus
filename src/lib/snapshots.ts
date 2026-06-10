@@ -33,6 +33,22 @@ export function getDaySnapshot(
   return store.days[dateKey] ?? null;
 }
 
+/** Update goals within a saved day snapshot */
+export function mapSnapshotGoals(
+  store: DaySnapshotStore,
+  dateKey: string,
+  mapper: (goals: Goal[]) => Goal[]
+): DaySnapshotStore {
+  const snapshot = getDaySnapshot(store, dateKey);
+  if (snapshot === null) return store;
+
+  return upsertDaySnapshot(store, dateKey, {
+    ...snapshot,
+    goals: mapper(snapshot.goals),
+    savedAt: new Date().toISOString(),
+  });
+}
+
 /** Human-readable label for a YYYY-MM-DD key */
 export function formatSnapshotDateLabel(dateKey: string): string {
   const parts = dateKey.split("-");

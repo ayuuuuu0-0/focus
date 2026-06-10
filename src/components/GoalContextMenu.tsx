@@ -13,6 +13,8 @@ interface GoalContextMenuProps {
   menu: GoalMenuState | null;
   /** Planned-day board — only time edit and delete */
   isPlanView?: boolean;
+  /** Past-day snapshot board — delete and restore only */
+  isPastView?: boolean;
   onClose: () => void;
   onChangeTime: (goalId: string) => void;
   onDelete: (goalId: string) => void;
@@ -25,6 +27,7 @@ interface GoalContextMenuProps {
 export function GoalContextMenu({
   menu,
   isPlanView = false,
+  isPastView = false,
   onClose,
   onChangeTime,
   onDelete,
@@ -69,9 +72,10 @@ export function GoalContextMenu({
             onClose();
           }}
         >
-          Restore to active
+          {isPastView ? "Mark not done" : "Restore to active"}
         </button>
       ) : (
+        !isPastView && (
         <>
           <button
             type="button"
@@ -106,6 +110,7 @@ export function GoalContextMenu({
             </button>
           )}
         </>
+        )
       )}
       <button
         type="button"

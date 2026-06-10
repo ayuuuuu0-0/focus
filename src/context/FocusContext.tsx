@@ -72,12 +72,15 @@ import {
 import {
   createDaySnapshot,
   getDaySnapshot,
+  mapSnapshotGoals,
   upsertDaySnapshot,
 } from "@/lib/snapshots";
 import {
   computeCurrentStreak,
   recordGoalCompletion,
+  recordGoalCompletionForDate,
   undoGoalCompletion,
+  undoGoalCompletionForDate,
   weekStrip,
 } from "@/lib/streaks";
 import type {
@@ -395,6 +398,32 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const completeGoal = useCallback(
     (id: string) => {
+      if (isReadOnlyView) {
+        const snapshot = getDaySnapshot(daySnapshots, selectedDate);
+        const target = snapshot?.goals.find((g) => g.id === id);
+        if (!target || target.status === GOAL_STATUS.completed) return;
+
+        setDaySnapshots((prev) =>
+          mapSnapshotGoals(prev, selectedDate, (goals) =>
+            sortGoals(
+              goals.map((g) =>
+                g.id === id
+                  ? {
+                      ...g,
+                      status: GOAL_STATUS.completed,
+                      progress: 100,
+                      completedAt: new Date().toISOString(),
+                    }
+                  : g
+              ),
+              selectedDate
+            )
+          )
+        );
+        setStreaks((s) => recordGoalCompletionForDate(s, selectedDate));
+        return;
+      }
+
       setGoals((prev) => {
         const next = sortGoals(
           prev.map((g) =>
@@ -420,11 +449,37 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       });
       setStreaks((s) => recordGoalCompletion(s));
     },
-    [mainGoalId, focusedGoalId, syncMainAndFocused]
+    [mainGoalId, focusedGoalId, syncMainAndFocused, isReadOnlyView, selectedDate, daySnapshots]
   );
 
   const restoreGoal = useCallback(
     (id: string) => {
+      if (isReadOnlyView) {
+        const snapshot = getDaySnapshot(daySnapshots, selectedDate);
+        const target = snapshot?.goals.find((g) => g.id === id);
+        if (!target || target.status !== GOAL_STATUS.completed) return;
+
+        setDaySnapshots((prev) =>
+          mapSnapshotGoals(prev, selectedDate, (goals) =>
+            sortGoals(
+              goals.map((g) =>
+                g.id === id
+                  ? {
+                      ...g,
+                      status: GOAL_STATUS.active,
+                      progress: g.progress >= 100 ? 50 : g.progress,
+                      completedAt: undefined,
+                    }
+                  : g
+              ),
+              selectedDate
+            )
+          )
+        );
+        setStreaks((s) => undoGoalCompletionForDate(s, selectedDate));
+        return;
+      }
+
       setGoals((prev) => {
         const target = prev.find((g) => g.id === id);
         if (!target || target.status !== GOAL_STATUS.completed) return prev;
@@ -446,11 +501,27 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       });
       setStreaks((s) => undoGoalCompletion(s));
     },
-    [syncMainAndFocused]
+    [syncMainAndFocused, isReadOnlyView, selectedDate, daySnapshots]
   );
 
   const deleteGoal = useCallback(
     (id: string) => {
+      if (isReadOnlyView) {
+        const snapshot = getDaySnapshot(daySnapshots, selectedDate);
+        const target = snapshot?.goals.find((g) => g.id === id);
+        if (!snapshot) return;
+
+        setDaySnapshots((prev) =>
+          mapSnapshotGoals(prev, selectedDate, (goals) =>
+            goals.filter((g) => g.id !== id)
+          )
+        );
+        if (target?.status === GOAL_STATUS.completed) {
+          setStreaks((s) => undoGoalCompletionForDate(s, selectedDate));
+        }
+        return;
+      }
+
       if (isPlanView) {
         if (isGoalInPlanForDate(id, selectedDate)) {
           updatePlannedGoals(selectedDate, (prev) =>
@@ -482,8 +553,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       });
     },
     [
+      isReadOnlyView,
       isPlanView,
       selectedDate,
+      daySnapshots,
       mainGoalId,
       focusedGoalId,
       syncMainAndFocused,

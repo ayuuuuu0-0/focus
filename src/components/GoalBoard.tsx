@@ -77,7 +77,7 @@ export function GoalBoard() {
         <div className="day-view-banner reveal" style={{ "--d": 1 } as React.CSSProperties}>
           <span className="day-view-label">
             Viewing <strong>{dateLabel}</strong>
-            <span className="day-view-hint">read only</span>
+            <span className="day-view-hint">mark done or delete tasks</span>
           </span>
           <button type="button" className="day-view-back" onClick={backToToday}>
             back to today
@@ -180,8 +180,9 @@ export function GoalBoard() {
         role="list"
       >
         {displayGoals.map((goal) => {
-          const isActive = !isPlanView && goal.status === GOAL_STATUS.active;
-          const isCompleted = !isPlanView && goal.status === GOAL_STATUS.completed;
+          const isActive =
+            !isPlanView && !isReadOnlyView && goal.status === GOAL_STATUS.active;
+          const isCompleted = goal.status === GOAL_STATUS.completed;
           const isMain = isActive && goal.id === displayMainGoalId;
           const isFocused = isActive && goal.id === displayFocusedGoalId;
           const isSecondary = isActive && !isMain;
@@ -191,6 +192,9 @@ export function GoalBoard() {
           if (isCompleted) {
             pillClass = "pill-done";
             pillLabel = "done";
+          } else if (isReadOnlyView && goal.status === GOAL_STATUS.active) {
+            pillClass = "pill-active";
+            pillLabel = "active";
           } else if (isMain) {
             pillClass = "pill-main";
             pillLabel = "main";
@@ -211,7 +215,7 @@ export function GoalBoard() {
                 if (!isReadOnlyView && !isPlanView && isActive) setFocusedGoal(goal.id);
               }}
               onContextMenu={(e) => {
-                if (!isReadOnlyView) openContextMenu(e, goal.id, isCompleted);
+                if (!isPlanView) openContextMenu(e, goal.id, isCompleted);
               }}
             >
               <div className="task-main">
@@ -226,8 +230,26 @@ export function GoalBoard() {
                     )}
                   </div>
                   <div className="task-actions">
-                    {isReadOnlyView || isPlanView ? (
+                    {isPlanView ? (
                       <span className={`pill ${pillClass}`}>{pillLabel}</span>
+                    ) : isReadOnlyView ? (
+                      <>
+                        <span className={`pill ${pillClass}`}>{pillLabel}</span>
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            className="btn-complete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              completeGoal(goal.id);
+                            }}
+                            aria-label={`Complete ${goal.title}`}
+                            title="Mark complete"
+                          >
+                            <CompleteIcon size={20} />
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <>
                         <button
@@ -339,10 +361,11 @@ export function GoalBoard() {
         })}
       </ul>
 
-      {!isReadOnlyView && (
+      {!isPlanView && (
         <GoalContextMenu
           menu={menu}
           isPlanView={isPlanView}
+          isPastView={isReadOnlyView}
           onClose={() => setMenu(null)}
           onChangeTime={(id) => setEditingTimeId(id)}
           onDelete={deleteGoal}

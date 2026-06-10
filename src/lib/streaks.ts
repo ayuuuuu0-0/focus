@@ -6,20 +6,36 @@ export { tomorrowKey } from "./dates";
 
 /** Record one completed goal for today */
 export function recordGoalCompletion(streaks: StreakData): StreakData {
-  const key = todayKey();
-  const prev = streaks.days[key] ?? 0;
+  return recordGoalCompletionForDate(streaks, todayKey());
+}
+
+/** Record one completed goal for a specific calendar day */
+export function recordGoalCompletionForDate(
+  streaks: StreakData,
+  dateKey: string
+): StreakData {
+  if (dateKey.length === 0) return streaks;
+  const prev = streaks.days[dateKey] ?? 0;
   return {
-    days: { ...streaks.days, [key]: prev + 1 },
+    days: { ...streaks.days, [dateKey]: prev + 1 },
   };
 }
 
 /** Undo one completion counted today (floor at 0) */
 export function undoGoalCompletion(streaks: StreakData): StreakData {
-  const key = todayKey();
-  const prev = streaks.days[key] ?? 0;
+  return undoGoalCompletionForDate(streaks, todayKey());
+}
+
+/** Undo one completion counted on a specific calendar day (floor at 0) */
+export function undoGoalCompletionForDate(
+  streaks: StreakData,
+  dateKey: string
+): StreakData {
+  if (dateKey.length === 0) return streaks;
+  const prev = streaks.days[dateKey] ?? 0;
   if (prev <= 0) return streaks;
   return {
-    days: { ...streaks.days, [key]: prev - 1 },
+    days: { ...streaks.days, [dateKey]: prev - 1 },
   };
 }
 
